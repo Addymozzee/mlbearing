@@ -6,5 +6,8 @@ scikit-learn
 catboost
 xgboost
 Flask
+optuna
+scipy
+lightgbm
 
 #-e .

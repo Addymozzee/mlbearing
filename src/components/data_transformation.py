@@ -1,4 +1,5 @@
 import sys
+sys.path.append('C:\\Users\\Aeesha\\DissProject\\mlbearing')
 from dataclasses import dataclass
 
 import numpy as np 
@@ -6,7 +7,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder,StandardScaler
+from sklearn.preprocessing import StandardScaler
 
 from src.exception import CustomException
 from src.logger import logging
@@ -16,15 +17,41 @@ from src.utils import save_object
 
 @dataclass
 class DataTransformationConfig:
-    preprocessor_obj_file_path=os.path.join('artifacts',"proprocessor.pkl")
+    preprocessor_obj_file_path=os.path.join('artifacts',"preprocessor.pkl")
 
 class DataTransformation:
     def __init__(self):
         self.data_transformation_config=DataTransformationConfig()
+# feature extraction for the vibration data
+    # Root Mean Squared Sum
+    def calculate_rms(df):
+        result = []
+        for col in df:
+            r = np.sqrt((df[col]**2).sum() / len(df[col]))
+            result.append(r)
+        return result
+
+    # extract peak-to-peak features
+    def calculate_p2p(df):
+        return np.array(df.max().abs() + df.min().abs())
+
+    # extract shannon entropy (cut signals to 500 bins)
+    def calculate_entropy(df):
+        ent = []
+        for col in df:
+            ent.append(entropy(pd.cut(df[col], 500).value_counts()))
+        return np.array(ent)
+    # extract clearence factor
+    def calculate_clearence(df):
+        result = []
+        for col in df:
+            r = ((np.sqrt(df[col].abs())).sum() / len(df[col]))**2
+            result.append(r)
+        return result
 
     def get_data_transformer_object(self):
         '''
-        This function si responsible for data trnasformation
+        This function is responsible for data trnasformation
         
         '''
         try:

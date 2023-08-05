@@ -1,18 +1,32 @@
 import os
 import sys
-from dataclasses import dataclass
+sys.path.append('C:\\Users\\Aeesha\\DissProject\\mlbearing')
 
-from catboost import CatBoostRegressor
-from sklearn.ensemble import (
-    AdaBoostRegressor,
-    GradientBoostingRegressor,
-    RandomForestRegressor,
-)
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.tree import DecisionTreeRegressor
-from xgboost import XGBRegressor
+import scipy
+from scipy.stats import entropy
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score,f1_score,classification_report
+from sklearn import preprocessing
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay
+import xgboost as xgb
+import catboost as cb
+import lightgbm as lgbm
+from sklearn.preprocessing import StandardScaler
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.metrics import accuracy_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+import plotly.express as px
+import plotly.graph_objects as go
+import optuna
 
 from src.exception import CustomException
 from src.logger import logging
