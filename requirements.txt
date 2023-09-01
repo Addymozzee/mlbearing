@@ -9,5 +9,11 @@ Flask
 optuna
 scipy
 lightgbm
+torch
+tensorflow
+charset_normalizer
+chardet
+statsmodels
+keras-tuner
 
 #-e .
