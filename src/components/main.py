@@ -6,4 +6,4 @@ if __name__ == "__main__":
     directory_path = 'C:/Users/tmade/DissProject/mlbearing/notebook/bearing/1st_test/1st_test'
     
     ct = data_transformation.initiate_data_transformation(directory_path)
-    cb = ModelTrainer() # Initialize and possibly use the ModelTrainer here as necessary
+    cb = ModelTrainer() # Initialize and possibly use the ModelTrainer here as necessary.
