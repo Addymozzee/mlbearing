@@ -1,27 +1,28 @@
 import os
+import sys
 import logging
 import pandas as pd
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from sklearn import preprocessing
-from sklearn.model_selection import train_test_split
-from dataclasses import dataclass
-import sys
-sys.path.append('C:\\Users\\Aeesha\\DissProject\\mlbearing')
 import time
 import optuna
-from optuna.trial import Trial
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
 import scipy
-from scipy.stats import entropy
-from dataclasses import dataclass
+import keras
+import torch
+import torch.optim as optim
+import tensorflow as tf
 import xgboost as xgb
 import catboost as cb
 import lightgbm as lgbm
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.naive_bayes import GaussianNB
+import torch.nn as nn
+import joblib
+import datetime
+from optuna.trial import Trial
+from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
+from dataclasses import dataclass
+sys.path.append('C:\\Users\\tmade\\DissProject\\mlbearing')
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from scipy.stats import entropy
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from src.exception import CustomException
 from src.logger import logging
@@ -29,7 +30,6 @@ from src.utils import save_object
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-import logging
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
@@ -37,14 +37,29 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
+from keras.utils import to_categorical
 
 class CustomException(Exception):
     pass
 
 @dataclass
 class ModelTrainerConfig:
-    trained_model_file_path: str = os.path.join("artifacts", "model.pkl")
+    svm_name: str = "svm"
+    svm_model_file_path: str = os.path.join("artifacts", f"{svm_name}.pkl")
+    
+    logistic_name: str = "logistic regression"
+    logistic_model_file_path: str = os.path.join("artifacts", f"{logistic_name}.pkl")
+    
+    rf_name: str = "random forest"
+    rf_model_file_path: str = os.path.join("artifacts", f"{rf_name}.pkl")
+    
+    xgb_name: str = "xgboost"
+    xgb_model_file_path: str = os.path.join("artifacts", f"{xgb_name}.pkl")
+    
+    lstm_name: str = "lstm"
+    lstm_model_file_path: str = os.path.join("artifacts", f"{lstm_name}.pkl")
 
 class ModelTrainer:
     def __init__(self):
@@ -56,14 +71,14 @@ class ModelTrainer:
             "early" : ["2003-10-22 12:06:24" , "2003-10-23 09:14:13"],
             "suspect" : ["2003-10-23 09:24:13" , "2003-11-08 12:11:44"],
             "normal" : ["2003-11-08 12:21:44" , "2003-11-19 21:06:07"],
-            "suspect_1" : ["2003-11-19 21:16:07" , "2003-11-24 20:47:32"],
+            "suspect" : ["2003-11-19 21:16:07" , "2003-11-24 20:47:32"],
             "imminent_failure" : ["2003-11-24 20:57:32","2003-11-25 23:39:56"]
         }
         B2 = {
             "early" : ["2003-10-22 12:06:24" , "2003-11-01 21:41:44"],
             "normal" : ["2003-11-01 21:51:44" , "2003-11-24 01:01:24"],
             "suspect" : ["2003-11-24 01:11:24" , "2003-11-25 10:47:32"],
-            "imminient_failure" : ["2003-11-25 10:57:32" , "2003-11-25 23:39:56"]
+            "imminent_failure" : ["2003-11-25 10:57:32" , "2003-11-25 23:39:56"]
         }
 
         B3 = {
@@ -99,10 +114,9 @@ class ModelTrainer:
     def initiate_model_trainer(self):
         try:
             logging.info("Split training and test input data")
-            df = pd.read_csv('./notebook/data/set1_timefeatures.csv')
-            set1 = df.rename(columns={'Unnamed: 0':'time'}).set_index('time')
-            set1 = self._assign_states(set1)
-            
+            df = pd.read_csv('./artifacts/set1_timefeatures.csv')
+            set1 = self._assign_states(df)
+                        
             # Initialize lists outside the loop
             B1_state = list()
             B2_state = list()
@@ -135,7 +149,7 @@ class ModelTrainer:
                 elif 2000 < cnt <= 2120:
                     B2_state.append("suspect")
                 elif 2120 < cnt <= 2156:
-                    B2_state.append("imminet_failure")
+                    B2_state.append("imminent_failure")
                 else:
                     B2_state.append(None)
 
@@ -184,9 +198,8 @@ class ModelTrainer:
             B2 = set1[B2_cols]
             B3 = set1[B3_cols]
             B4 = set1[B4_cols]
-            cols = ['Bx_mean','Bx_std','Bx_skew','Bx_kurtosis','Bx_entropy','Bx_rms','Bx_max','Bx_p2p','Bx_crest', 'Bx_clearence', 'Bx_shape', 'Bx_impulse',
-                        'By_mean','By_std','By_skew','By_kurtosis','By_entropy','By_rms','By_max','By_p2p','By_crest', 'By_clearence', 'By_shape', 'By_impulse',
-                        'class']
+            cols = ['B_mean','B_std','B_skew','B_kurtosis','B_entropy','B_rms','B_max','B_p2p','B_crest', 'B_clearence', 'B_shape', 'B_impulse',
+            'class']
             # cols = [... ]  # The same list of column names as before
             B1.columns = cols
             B2.columns = cols
@@ -205,40 +218,57 @@ class ModelTrainer:
 
         except Exception as e:
             raise CustomException(str(e))
-
+    
     def objective_svm(self, trial):
         try:
             X_train, X_test, y_train, y_test = self.initiate_model_trainer()
             
-            svm = SVC(
-                C=trial.suggest_float("C_svm", 1e-3, 1e3, log=True), 
-                kernel="rbf", 
-                gamma="scale"
+            kernel = trial.suggest_categorical("kernel", ['linear', 'rbf', 'sigmoid'])
+
+            svm_cl = SVC(
+                C=trial.suggest_float("C_svm", 0.1, 100, log=True),
+                kernel=kernel,
+                gamma=trial.suggest_categorical("gamma", ['scale', 'auto', 0.1, 1, 10]),
+                degree=trial.suggest_int('degree', 1, 5) if kernel=='poly' else 3, 
+                coef0=trial.suggest_float('coef0', -1.0, 1.0),
+                class_weight=trial.suggest_categorical('class_weight', [None, 'balanced'])
             )
             
-            # Performance evaluation metrics
-            precision = precision_score(y_test, preds)
-            recall = recall_score(y_test, preds)
-            f1 = f1_score(y_test, preds)
-
-
             start_time = time.time()
-            svm.fit(X_train, y_train)
+            svm_cl.fit(X_train, y_train)
             end_time = time.time()
-            preds = svm.predict(X_test)
+            preds = svm_cl.predict(X_test)
             score = accuracy_score(y_test, preds)
             training_duration = end_time - start_time
-            
+
+            # Performance evaluation metrics
+            accuracy = accuracy_score(y_test, preds)
+            f1 = f1_score(y_test, preds, average='macro')
+            precision = precision_score(y_test, preds, average='macro')
+            recall = recall_score(y_test, preds, average='macro')
+                    
+            # Save intermediate results
+            intermediate_results = {
+                "svm_cl": svm_cl,
+                "preds": preds,
+                "accuracy": accuracy,
+                "f1": f1,
+                "precision": precision,
+                "recall": recall
+            }
+            joblib.dump(intermediate_results, "svm_intermediate_results.pkl")
+
             self.log_and_print("SVM", score, training_duration)
             self.log_and_print("SVM", precision, training_duration)
             self.log_and_print("SVM", recall, training_duration)
             self.log_and_print("SVM", f1, training_duration)
-
+           
+            self.model_trainer_config = ModelTrainerConfig(svm_name= "svm")
             save_object(
-                file_path=self.model_trainer_config.trained_model_file_path,
-                obj=svm  # Save the classifier model
+                file_path=self.model_trainer_config.svm_model_file_path,
+                obj=svm_cl  # Save the classifier model
             )
-            return score, precision, recall, f1
+            return score
         except Exception as e:
             raise CustomException(str(e))
 
@@ -247,7 +277,7 @@ class ModelTrainer:
         try:
             X_train, X_test, y_train, y_test = self.initiate_model_trainer()
             
-            log_reg = Pipeline([
+            lr_cl = Pipeline([
                 ('scaler', StandardScaler()), 
                 ('logistic', LogisticRegression(
                     C=trial.suggest_float("C_logreg", 1e-3, 1e3, log=True),
@@ -256,27 +286,39 @@ class ModelTrainer:
                 ))
             ])
             
-            # Performance evaluation metrics
-            precision = precision_score(y_test, preds)
-            recall = recall_score(y_test, preds)
-            f1 = f1_score(y_test, preds)
-
-
             start_time = time.time()
-            log_reg.fit(X_train, y_train)
+            lr_cl.fit(X_train, y_train)
             end_time = time.time()
-            preds = log_reg.predict(X_test)
+            preds = lr_cl.predict(X_test)
             score = accuracy_score(y_test, preds)
             training_duration = end_time - start_time
-            
+
+            # Performance evaluation metrics
+            accuracy = accuracy_score(y_test, preds)
+            f1 = f1_score(y_test, preds, average='macro')
+            precision = precision_score(y_test, preds, average='macro')
+            recall = recall_score(y_test, preds, average='macro')
+
+            # Save intermediate results
+            intermediate_results = {
+                "lr_cl": lr_cl,
+                "preds": preds,
+                "accuracy": accuracy,
+                "f1": f1,
+                "precision": precision,
+                "recall": recall
+            }
+            joblib.dump(intermediate_results, "lr_intermediate_results.pkl") 
+
             self.log_and_print("Logistic Regression with Scaling", score, training_duration)
             self.log_and_print("Logistic Regression with Scaling", precision, training_duration)
             self.log_and_print("Logistic Regression with Scaling", recall, training_duration)
             self.log_and_print("Logistic Regression with Scaling", f1, training_duration)
 
+            self.model_trainer_config = ModelTrainerConfig(logistic_name= "logistic regression")
             save_object(
-                file_path=self.model_trainer_config.trained_model_file_path,
-                obj=log_reg  # Save the classifier model
+                file_path=self.model_trainer_config.logistic_model_file_path,
+                obj=lr_cl  # Save the classifier model
             )
             return score
         except Exception as e:
@@ -287,7 +329,7 @@ class ModelTrainer:
         try:
             X_train, X_test, y_train, y_test = self.initiate_model_trainer()
             
-            random_forest = RandomForestClassifier(
+            rf_cl = RandomForestClassifier(
                 n_estimators=trial.suggest_int("n_estimators_rf", 100, 1000),
                 max_depth=trial.suggest_int("max_depth_rf", 2, 10),
                 min_samples_split=trial.suggest_int("min_samples_split_rf", 2, 5),
@@ -295,26 +337,39 @@ class ModelTrainer:
                 max_features=trial.suggest_categorical("max_features_rf", ["sqrt", "log2"])
             )
 
-            # Performance evaluation metrics
-            precision = precision_score(y_test, preds)
-            recall = recall_score(y_test, preds)
-            f1 = f1_score(y_test, preds)
-            
             start_time = time.time()
-            random_forest.fit(X_train, y_train)
+            rf_cl.fit(X_train, y_train)
             end_time = time.time()
-            preds = random_forest.predict(X_test)
+            preds = rf_cl.predict(X_test)
             score = accuracy_score(y_test, preds)
             training_duration = end_time - start_time
-            
+
+            # Performance evaluation metrics
+            accuracy = accuracy_score(y_test, preds)
+            f1 = f1_score(y_test, preds, average='macro')
+            precision = precision_score(y_test, preds, average='macro')
+            recall = recall_score(y_test, preds, average='macro')
+
+            # Save intermediate results
+            intermediate_results = {
+                "rf_cl": rf_cl,
+                "preds": preds,
+                "accuracy": accuracy,
+                "f1": f1,
+                "precision": precision,
+                "recall": recall
+            }
+            joblib.dump(intermediate_results, "rf_intermediate_results.pkl")
+
             self.log_and_print("Random Forest", score, training_duration)
             self.log_and_print("Random Forest", precision, training_duration)
             self.log_and_print("Random Forest", recall, training_duration)
             self.log_and_print("Random Forest", f1, training_duration)
 
+            self.model_trainer_config = ModelTrainerConfig(rf_name="random forest")
             save_object(
-                file_path=self.model_trainer_config.trained_model_file_path,
-                obj=random_forest  # Save the classifier model
+                file_path=self.model_trainer_config.rf_model_file_path,
+                obj=rf_cl  # Save the classifier model
             )
             return score
         except Exception as e:
@@ -325,7 +380,7 @@ class ModelTrainer:
         try:
             X_train, X_test, y_train, y_test = self.initiate_model_trainer()
             
-            xgboost = xgb.XGBClassifier(
+            xgb_cl = xgb.XGBClassifier(
                 learning_rate=trial.suggest_float("learning_rate_xgb", 0.01, 0.3),
                 n_estimators=trial.suggest_int("n_estimators_xgb", 50, 1000),
                 max_depth=trial.suggest_int("max_depth_xgb", 2, 10),
@@ -336,28 +391,110 @@ class ModelTrainer:
                 tree_method="hist"
             )
 
-            # Performance evaluation metrics
-            precision = precision_score(y_test, preds)
-            recall = recall_score(y_test, preds)
-            f1 = f1_score(y_test, preds)
-            
             start_time = time.time()
-            xgboost.fit(X_train, y_train)
+            xgb_cl.fit(X_train, y_train)
             end_time = time.time()
-            preds = xgboost.predict(X_test)
+            preds = xgb_cl.predict(X_test)
             score = accuracy_score(y_test, preds)
             training_duration = end_time - start_time
-            
+
+            # Performance evaluation metrics
+            accuracy = accuracy_score(y_test, preds)
+            f1 = f1_score(y_test, preds, average='macro')
+            precision = precision_score(y_test, preds, average='macro')
+            recall = recall_score(y_test, preds, average='macro')
+
+            # Save intermediate results
+            intermediate_results = {
+                "xgb_cl": xgb_cl,
+                "preds": preds,
+                "accuracy": accuracy,
+                "f1": f1,
+                "precision": precision,
+                "recall": recall
+            }
+            joblib.dump(intermediate_results, "xgb_intermediate_results.pkl")
+
             self.log_and_print("XGBoost", score, training_duration)
             self.log_and_print("XGBoost", precision, training_duration)
             self.log_and_print("XGBoost", recall, training_duration)
             self.log_and_print("XGBoost", f1, training_duration)
 
+            self.model_trainer_config = ModelTrainerConfig(xgb_name="xgboost")
             save_object(
-                file_path=self.model_trainer_config.trained_model_file_path,
-                obj=xgboost  
+                file_path=self.model_trainer_config.xgb_model_file_path,
+                obj=xgb_cl  # Save the classifier model
             )
             return score         # Saving the classifier model
+        except Exception as e:
+            raise CustomException(str(e))
+
+
+    def objective_lstm(self, trial):
+        try:
+            X_train, X_test, y_train, y_test = self.initiate_model_trainer()
+
+            # Reshape data to be 3D [samples, timesteps, features]
+            X_train = X_train.values.reshape((X_train.shape[0], 1, X_train.shape[1]))
+            X_test = X_test.values.reshape((X_test.shape[0], 1, X_test.shape[1]))
+
+            # Convert labels to one-hot encoding
+            y_train = to_categorical(y_train)
+            y_test = to_categorical(y_test)
+            
+            unique_labels = np.unique(y_train)  # Assuming y_train is a NumPy array or a Pandas series
+            save_object('path/to/unique_labels_lstm.pkl', unique_labels)
+
+            # Create the LSTM model
+            lstm = Sequential([
+                LSTM(trial.suggest_int("units_lstm", 32, 128), input_shape=(X_train.shape[1], X_train.shape[2])),
+                Dense(y_train.shape[1], activation='softmax')
+            ])
+
+            lstm.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+            
+            # Train the model
+            start_time = time.time()
+            lstm.fit(X_train, y_train, epochs=trial.suggest_int("epochs_lstm", 5, 50), batch_size=trial.suggest_int("batch_size_lstm", 32, 128), validation_data=(X_test, y_test), verbose=0)
+            end_time = time.time()        
+            preds = lstm.predict(X_test)
+            
+            # Evaluate the model
+            score, accuracy = lstm.evaluate(X_test, y_test, verbose=0)
+            training_duration = end_time - start_time
+            pred_labels = np.argmax(preds, axis=1)
+            y_test_labels = np.argmax(y_test, axis=1)
+
+            # Performance evaluation metrics
+            accuracy = accuracy_score(y_test_labels, pred_labels)
+            f1 = f1_score(y_test_labels, pred_labels, average='macro')
+            precision = precision_score(y_test_labels, pred_labels, average='macro', zero_division=0)
+            recall = recall_score(y_test_labels, pred_labels, average='macro')           
+            
+            # Save intermediate results
+            intermediate_results = {
+                "lstm": lstm,
+                "pred_labels": pred_labels,
+                "accuracy": accuracy,
+                "f1": f1,
+                "precision": precision,
+                "recall": recall
+            }
+            joblib.dump(intermediate_results, "lstm_intermediate_results.pkl")
+
+            self.log_and_print("LSTM", score, training_duration)
+            self.log_and_print("LSTM", precision, training_duration)
+            self.log_and_print("LSTM", recall, training_duration)
+            self.log_and_print("LSTM", f1, training_duration)
+
+            self.model_trainer_config = ModelTrainerConfig(lstm_name="lstm")
+            save_object(
+                file_path=self.model_trainer_config.lstm_model_file_path,
+                obj=lstm  # Save the classifier model
+            )
+            
+            return score
+
         except Exception as e:
             raise CustomException(str(e))
 
@@ -368,48 +505,112 @@ class ModelTrainer:
         print(f"Model {model_name} found with score: {score}")
         print(f"Model {model_name} took {duration} seconds to train.")
 
+    def support_vm_optimise(self, n_trials=10):
+        
+        study_svm = optuna.create_study(direction='maximize')
+        study_svm.optimize(self.objective_svm, n_trials=n_trials)  # 10 trials, adjust this as needed
+        print("\n--- SVM Results ---")
+        print("Best Parameters: ", study_svm.best_params)
+        print("Best Score: ", study_svm.best_value)
+        logging.info("Best Parameters: %s", study_svm.best_params)
+        logging.info("Best Score: %s", study_svm.best_value)
+
+    def log_reg_optimise(self, n_trials=10):
+
+        study_logistic = optuna.create_study(direction='maximize')
+        study_logistic.optimize(self.objective_logistic_regression, n_trials=n_trials)  
+        print("\n--- Logistic Regression Results ---")
+        print("Best Parameters: ", study_logistic.best_params)
+        print("Best Score: ", study_logistic.best_value)
+        logging.info("Best Parameters: %s", study_logistic.best_params)
+        logging.info("Best Score: %s", study_logistic.best_value)
+
+    def random_forest_optimise(self, n_trials=10):
+
+        study_rf = optuna.create_study(direction='maximize')
+        study_rf.optimize(self.objective_random_forest, n_trials=n_trials)  
+        print("\n--- Random Forest Results ---")
+        print("Best Parameters: ", study_rf.best_params)
+        print("Best Score: ", study_rf.best_value)
+        logging.info("Best Parameters: %s", study_rf.best_params)
+        logging.info("Best Score: %s", study_rf.best_value)
+
+    def xgboost_optimise(self, n_trials=10):
+
+        study_xgb = optuna.create_study(direction='maximize')
+        study_xgb.optimize(self.objective_xgboost, n_trials=n_trials)  
+        print("\n--- XGBoost Results ---")
+        print("Best Parameters: ", study_xgb.best_params)
+        print("Best Score: ", study_xgb.best_value)
+        logging.info("Best Parameters: %s", study_xgb.best_params)
+        logging.info("Best Score: %s", study_xgb.best_value)
+
+    def rnn_lstm_optimise(self, n_trials=10):
+
+        study_lstm_rnn = optuna.create_study(direction='maximize')
+        study_lstm_rnn.optimize(self.objective_lstm, n_trials=n_trials)  
+        print("\n--- LSTM Results ---")
+        print("Best Parameters: ", study_lstm_rnn.best_params)
+        print("Best Score: ", study_lstm_rnn.best_value)
+        logging.info("Best Parameters: %s", study_lstm_rnn.best_params)
+        logging.info("Best Score: %s", study_lstm_rnn.best_value)
 
 
 if __name__ == "__main__":
     vibd = ModelTrainer()
-
-    # Optimize for SVM
-    study_svm = optuna.create_study(direction='maximize')
-    study_svm.optimize(vibd.objective_svm, n_trials=20)  # 20 trials, adjust this as needed
-    print("\n--- SVM Results ---")
-    print("Best Parameters: ", study_svm.best_params)
-    print("Best Score: ", study_svm.best_value)
-    logging.info("Best Parameters: %s", study_svm.best_params)
-    logging.info("Best Score: %s", study_svm.best_value)
-
-    # Optimize for Logistic Regression
-    study_logistic = optuna.create_study(direction='maximize')
-    study_logistic.optimize(vibd.objective_logistic_regression, n_trials=20)  
-    print("\n--- Logistic Regression Results ---")
-    print("Best Parameters: ", study_logistic.best_params)
-    print("Best Score: ", study_logistic.best_value)
-    logging.info("Best Parameters: %s", study_logistic.best_params)
-    logging.info("Best Score: %s", study_logistic.best_value)
-
-    # Optimize for Random Forest
-    study_rf = optuna.create_study(direction='maximize')
-    study_rf.optimize(vibd.objective_random_forest, n_trials=20)  
-    print("\n--- Random Forest Results ---")
-    print("Best Parameters: ", study_rf.best_params)
-    print("Best Score: ", study_rf.best_value)
-    logging.info("Best Parameters: %s", study_rf.best_params)
-    logging.info("Best Score: %s", study_rf.best_value)
-
-    # Optimize for XGBoost
-    study_xgb = optuna.create_study(direction='maximize')
-    study_xgb.optimize(vibd.objective_xgboost, n_trials=20)  
-    print("\n--- XGBoost Results ---")
-    print("Best Parameters: ", study_xgb.best_params)
-    print("Best Score: ", study_xgb.best_value)
-    logging.info("Best Parameters: %s", study_xgb.best_params)
-    logging.info("Best Score: %s", study_xgb.best_value)
+    vibd.support_vm_optimise(n_trials=10)
+    vibd.log_reg_optimise(n_trials=10)
+    vibd.random_forest_optimise(n_trials=10)
+    vibd.xgboost_optimise(n_trials=10)
+    vibd.rnn_lstm_optimise(n_trials=10)
+    #print(vibd.support_vm_optimise())
 
 
+
+    # # Optimize for SVM
+    # study_svm = optuna.create_study(direction='maximize')
+    # study_svm.optimize(vibd.objective_svm, n_trials=10)  # 10 trials, adjust this as needed
+    # print("\n--- SVM Results ---")
+    # print("Best Parameters: ", study_svm.best_params)
+    # print("Best Score: ", study_svm.best_value)
+    # logging.info("Best Parameters: %s", study_svm.best_params)
+    # logging.info("Best Score: %s", study_svm.best_value)
+
+    # # Optimize for Logistic Regression
+    # study_logistic = optuna.create_study(direction='maximize')
+    # study_logistic.optimize(vibd.objective_logistic_regression, n_trials=10)  
+    # print("\n--- Logistic Regression Results ---")
+    # print("Best Parameters: ", study_logistic.best_params)
+    # print("Best Score: ", study_logistic.best_value)
+    # logging.info("Best Parameters: %s", study_logistic.best_params)
+    # logging.info("Best Score: %s", study_logistic.best_value)
+
+    # # Optimize for Random Forest
+    # study_rf = optuna.create_study(direction='maximize')
+    # study_rf.optimize(vibd.objective_random_forest, n_trials=20)  
+    # print("\n--- Random Forest Results ---")
+    # print("Best Parameters: ", study_rf.best_params)
+    # print("Best Score: ", study_rf.best_value)
+    # logging.info("Best Parameters: %s", study_rf.best_params)
+    # logging.info("Best Score: %s", study_rf.best_value)
+
+    # # Optimize for XGBoost
+    # study_xgb = optuna.create_study(direction='maximize')
+    # study_xgb.optimize(vibd.objective_xgboost, n_trials=10)  
+    # print("\n--- XGBoost Results ---")
+    # print("Best Parameters: ", study_xgb.best_params)
+    # print("Best Score: ", study_xgb.best_value)
+    # logging.info("Best Parameters: %s", study_xgb.best_params)
+    # logging.info("Best Score: %s", study_xgb.best_value)
+
+    # # Optimize for LSTM
+    # study_lstm_rnn = optuna.create_study(direction='maximize')
+    # study_lstm_rnn.optimize(vibd.objective_lstm, n_trials=10)  
+    # print("\n--- LSTM Results ---")
+    # print("Best Parameters: ", study_lstm_rnn.best_params)
+    # print("Best Score: ", study_lstm_rnn.best_value)
+    # logging.info("Best Parameters: %s", study_lstm_rnn.best_params)
+    # logging.info("Best Score: %s", study_lstm_rnn.best_value)
 
 
 

@@ -1,78 +1,172 @@
-<!-- <html>
+<!-- <!DOCTYPE html>
+<html>
 <body>
     <div class="login">
        <h1>Machine Learning Models on Vibration Data</h1>
-   
-       <form action="{{ url_for('predict_bearing_data')}}" method="post">
-        <h1>
-            <legend>Machine Learning Models on Vibration Data</legend>
-        </h1>
+
+       <form action="{{ url_for('predict_bearing_data')}}" method="post" enctype="multipart/form-data">
         <div class="mb-3">
-            <label class="form-label">your_data_path</label>
-            <select class="form-control" name="your_data_path" placeholder="Enter you Gender" required>
-        </select>
+            <label class="form-label">Your Data Path</label> -->
+            <!-- <!-File input for selecting directory -->
+            <!-- <input type="file" class="form-control" name="your_data_path" webkitdirectory directory multiple />
         </div>
         
+        <div class="mb-3">
+            <label class="form-label">Or Enter Directory Path Manually</label> -->
+            <!-- <!-Text input for manually entering directory path --> -->
+            <!-- <input type="text" class="form-control" name="your_data_path_text" placeholder="Enter the directory path" />
+        </div>
+
         <div class="mb-3">
             <input class="btn btn-primary" type="submit" value="Predict Accuracy Score" required />
         </div>
     </form>
-    <h2>
-       THE  prediction is {{results}}
+    <h2> -->
+       <!-- THE prediction is {{results}}
     </h2>
    <body>
 </html> -->
 
 
-
-
 <!-- <!DOCTYPE html>
 <html>
-<head>
-    <title>Machine Learning Models on Vibration Data</title>
-</head>
 <body>
     <div class="login">
         <h1>Machine Learning Models on Vibration Data</h1>
-   
-        <form action="{{ url_for('predict_bearing_data')}}" method="post">
+
+        <form action="{{ url_for('predict_bearing_data')}}" method="post" enctype="multipart/form-data">
             <div class="mb-3">
-                <label class="form-label">Your Data Path</label>
-                <input class="form-control" type="text" name="your_data_path" placeholder="Enter the path to your data" required>
+                <label class="form-label">Your Data Path</label> -->
+                <!-- File input for selecting directory -->
+                <!-- <input type="file" class="form-control" name="your_data_path" webkitdirectory directory multiple />
             </div>
+
             <div class="mb-3">
-                <input class="btn btn-primary" type="submit" value="Predict">
+                <label class="form-label">Or Enter Directory Path Manually</label> -->
+                <!-- Text input for manually entering directory path -->
+                <!-- <input type="text" class="form-control" name="your_data_path_text" placeholder="Enter the directory path" />
             </div>
-        </form>
-        
-        <h2>
-            THE prediction is {{results}}
-        </h2>
+
+            <div class="mb-3">
+                <input class="btn btn-primary" type="submit" value="Predict Accuracy Score" required />
+            </div>
+        </form> -->
+
+        <!-- Displaying predictions for each model -->
+        <!-- <h2>SVM Model Prediction:</h2>
+        <p>{{results['SVM']['prediction']}}</p>
+        <p>Accuracy: {{results['SVM']['accuracy']}}</p>
+
+        <h2>Logistic Regression Model Prediction:</h2>
+        <p>{{results['Logistic Regression']['prediction']}}</p>
+        <p>Accuracy: {{results['Logistic Regression']['accuracy']}}</p>
+
+        <h2>Random Forest Model Prediction:</h2>
+        <p>{{results['Random Forest']['prediction']}}</p>
+        <p>Accuracy: {{results['Random Forest']['accuracy']}}</p>
+
+        <h2>XGBoost Model Prediction:</h2>
+        <p>{{results['XGBoost']['prediction']}}</p>
+        <p>Accuracy: {{results['XGBoost']['accuracy']}}</p>
+
+        <h2>LSTM Model Prediction:</h2>
+        <p>{{results['LSTM']['prediction']}}</p>
+        <p>Accuracy: {{results['LSTM']['accuracy']}}</p>
+
     </div>
 </body>
 </html> -->
+
+<!-- <!DOCTYPE html>
+<html>
+<body>
+    <div class="login">
+        <h1>Testing of Machine Learning Models on Vibration Data</h1>
+        <form action="{{ url_for('predict_bearing_data')}}" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label">Your Data Path</label>
+                File input for selecting directory -->
+                <!-- <input type="file" class="form-control" name="your_data_path_file" webkitdirectory directory multiple />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Or Enter Directory Path Manually</label> -->
+                <!-- Text input for manually entering directory path -->
+                <!-- <input type="text" class="form-control" name="your_data_path_text" placeholder="Enter the directory path" />
+            </div>
+
+            <div class="mb-3">
+                <input class="btn btn-primary" type="submit" value="Predict Accuracy Score" required />
+            </div>
+        </form> -->
+
+        <!-- Display results or errors here -->
+        <!-- <div class="result">
+            {% if results %}
+                <h2>Results:</h2>
+                <ul>
+                    {% for model, accuracy in results.items() %}
+                        <li>{{ model }}: {{ accuracy }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if error %}
+                <h2>Error:</h2>
+                <p>{{ error }}</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html> -->
+
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Machine Learning Models on Vibration Data</title>
-</head>
 <body>
     <div class="login">
         <h1>Machine Learning Models on Vibration Data</h1>
-   
+
         <form action="{{ url_for('predict_bearing_data')}}" method="post" enctype="multipart/form-data">
             <div class="mb-3">
-                <label class="form-label">Upload Your Data File</label>
-                <input class="form-control" type="file" name="your_data_file" accept=".csv, .txt, .xlsx" required>
+                <label class="form-label">Your Data Path</label>
+                <!-- File input for selecting directory -->
+                <input type="file" class="form-control" name="your_data_path_file" webkitdirectory directory multiple />
             </div>
+
             <div class="mb-3">
-                <input class="btn btn-primary" type="submit" value="Predict">
+                <label class="form-label">Or Enter Directory Path Manually</label>
+                <!-- Text input for manually entering directory path -->
+                <input type="text" class="form-control" name="your_data_path_text" placeholder="Enter the directory path" />
+            </div>
+
+            <div class="mb-3">
+                <input class="btn btn-primary" type="submit" value="Predict" required />
             </div>
         </form>
+
+        <!-- Displaying predictions for each model -->
         
-        <h2>
-            THE prediction is {{results}}
-        </h2>
+        <h2>Logistic Regression Model Prediction:</h2>
+        <p>{{ results['Logistic Regression']['prediction'] }}</p>
+
+        <h2>Random Forest Model Prediction:</h2>
+        <p>{{ results['Random Forest']['prediction'] }}</p>
+
+        <h2>XGBoost Model Prediction:</h2>
+        <p>{{ results['XGBoost']['prediction'] }}</p>
+
+        <h2>LSTM Model Prediction:</h2>
+        <p>{{ results['LSTM']['prediction'] }}</p>
+
+        <!-- Display error message if any -->
+        {% if error %}
+            <div style="color: red;">
+                <strong>Error:</strong> {{ error }}
+            </div>
+        {% endif %}
     </div>
 </body>
 </html>
+
+
+
